@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Website Usage Monitor",
+  "version": "1.0",
+  "description": "Monitors time spent on certain websites and sends alerts every 15 minutes.",
+  "permissions": ["storage", "tabs", "alarms", "notifications"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
