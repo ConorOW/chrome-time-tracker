@@ -4,6 +4,66 @@ let activeDomain = null;
 let startTime = null;
 const NOTIFY_INTERVAL = 900; // 15 minutes in seconds;
 
+function checkForNewDay() {
+    chrome.storage.sync.get(["trackedSites", "lastResetDate"], (data) => {
+        let storedSites = data.trackedSites || {};
+        let lastReset = data.lastResetDate;
+        let today = new Date().toDateString();
+
+        // ✅ If no reset date exists, set one
+        if (!lastReset) {
+            console.log("🆕 No reset date found, initializing...");
+            chrome.storage.sync.set({ lastResetDate: today }, () => {
+                console.log("✅ Initial lastResetDate set:", today);
+            });
+            return; // Exit to avoid double resetting
+        }
+
+        // ✅ If a new day has started, reset the timer
+        if (lastReset !== today) {
+            console.log("🌅 New day detected! Resetting time tracker...");
+
+            for (let site in storedSites) {
+                storedSites[site].timeSpentToday = 0;
+            }
+
+            chrome.storage.sync.set({
+                trackedSites: storedSites,
+                lastResetDate: today
+            }, () => {
+                console.log("✅ Time tracker reset for a new day:", today);
+            });
+        }
+    });
+}
+
+// ✅ Run this check when the extension starts
+checkForNewDay();
+
+// ✅ Schedule periodic daily reset checks
+chrome.alarms.create("dailyReset", { when: Date.now(), periodInMinutes: 60 });
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === "dailyReset") {
+        checkForNewDay();
+    }
+});
+
+// ✅ 4️⃣ Keep the rest of your existing event listeners BELOW this
+chrome.tabs.onActivated.addListener((activeInfo) => {
+    console.log("🔄 Tab switched:", activeInfo);
+    activeTabId = activeInfo.tabId;
+    updateActiveDomain();
+});
+
+chrome.alarms.create("trackTime", { periodInMinutes: 1 });
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === "trackTime") {
+        trackTime();
+    }
+});
+
 // Load tracked sites and reset daily time if necessary
 chrome.storage.sync.get(["trackedSites", "lastResetDate"], (data) => {
     let lastReset = data.lastResetDate || new Date().toDateString();
@@ -45,7 +105,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 // **Ensure tracking runs every 10 seconds for debugging**
-chrome.alarms.create("trackTime", { periodInMinutes: 0.1667 });
+chrome.alarms.create("trackTime", { periodInMinutes: 0.5 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === "trackTime") trackTime();
