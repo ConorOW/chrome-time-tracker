@@ -144,28 +144,27 @@ function trackTime() {
 
         // ✅ Calculate actual seconds spent
         const timeSpent = Math.floor((Date.now() - startTime) / 1000); // Convert ms to seconds
+        const minutesSpent = Math.floor(timeSpent / 60); // Convert seconds to minutes
 
-        console.log(`⏳ Time Spent on ${activeDomain}: ${timeSpent} sec`);
-
-        // ✅ Convert to minutes only when 60 full seconds have passed
-        const minutesSpent = Math.floor(timeSpent / 60); // Remove `Math.max(1, ...)`
-
-        if (minutesSpent > 0) { // Only update if at least 1 full minute has passed
+        if (minutesSpent > 0) {
+            // ✅ Add time to stored data
             storedSites[activeDomain].timeSpentToday = (storedSites[activeDomain].timeSpentToday || 0) + minutesSpent;
 
-            console.log(`✅ Tracking time for ${activeDomain}: ${storedSites[activeDomain].timeSpentToday} min`);
+            // ✅ Print time in hours if over 60 min, otherwise print minutes
+            let totalTime = storedSites[activeDomain].timeSpentToday;
+            let displayTime = totalTime >= 60 
+                ? `${(totalTime / 60).toFixed(1)} hours`  // Convert minutes to hours with 1 decimal place
+                : `${totalTime} minutes`;
 
-            chrome.storage.sync.set({ trackedSites: storedSites }, () => {
-                chrome.storage.sync.get("trackedSites", (newData) => {
-                    console.log("✅ After Saving:", JSON.stringify(newData.trackedSites, null, 2));
-                });
-            });
+            console.log(`✅ Tracking time for ${activeDomain}: ${displayTime}`);
 
-            startTime = Date.now(); // ✅ Reset startTime only when a minute is logged
+            // ✅ Save updated time
+            chrome.storage.sync.set({ trackedSites: storedSites });
+
+            startTime = Date.now(); // Reset tracking cycle
         }
     });
 }
-
 
 // **Ensure Proper Domain Extraction**
 function getRootDomain(url) {
